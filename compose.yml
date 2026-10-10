@@ -1,0 +1,78 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      VICTORIA_METRICS_URL: http://victoria-metrics:8428
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  victoria-metrics:
+    image: docker.io/victoriametrics/victoria-metrics:v1.153.0
+    command:
+      - "-promscrape.config=/etc/victoria/scrape.yml"
+      - "-retentionPeriod=90d"
+    volumes:
+      - ./deployment/victoria/scrape.yml:/etc/victoria/scrape.yml:ro,Z
+      - victoria-data:/victoria-metrics-data
+    ports:
+      - "127.0.0.1:8428:8428"
+    restart: unless-stopped
+
+  vmalert:
+    image: docker.io/victoriametrics/vmalert:v1.153.0
+    command:
+      - "-rule=/etc/vmalert/coffee-alerts.yml"
+      - "-datasource.url=http://victoria-metrics:8428"
+      - "-notifier.url=http://alertmanager:9093"
+      - "-evaluationInterval=30s"
+    volumes:
+      - ./deployment/victoria/coffee-alerts.yml:/etc/vmalert/coffee-alerts.yml:ro,Z
+    depends_on:
+      - victoria-metrics
+      - alertmanager
+    restart: unless-stopped
+
+  alertmanager:
+    image: docker.io/prom/alertmanager:v0.28.1
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--web.external-url=http://localhost:9093"
+    volumes:
+      - ./deployment/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro,Z
+    ports:
+      - "127.0.0.1:9093:9093"
+    restart: unless-stopped
+
+  grafana:
+    image: docker.io/grafana/grafana:13.0.0-24165874688-ubuntu
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-local-dev-only}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./deployment/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro,Z
+      - ./deployment/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro,Z
+      - ./deployment/grafana/dashboards:/var/lib/grafana/dashboards:ro,Z
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - victoria-metrics
+    restart: unless-stopped
+
+volumes:
+  victoria-data:
+    name: victoria-data
+  grafana-data:
+    name: grafana-data

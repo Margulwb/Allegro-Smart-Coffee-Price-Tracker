@@ -1,0 +1,40 @@
+{
+  "title": "Coffee Deal Observer",
+  "uid": "coffee-deal-observer",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Coffee offer price (PLN)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "max by (product, seller) (allegro_coffee_price_pln)", "legendFormat": "{{product}} / {{seller}}", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "currencyPLN", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 2,
+      "title": "AI-assisted alerts processed",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "sum by (advisor) (rate(coffee_alerts_processed_total[5m]))", "legendFormat": "{{advisor}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    }
+  ]
+}

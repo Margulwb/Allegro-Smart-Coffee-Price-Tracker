@@ -1,0 +1,17 @@
+[Unit]
+Description=Coffee Deal Observer Podman Compose stack
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/mg/git/Allegro-Smart-Coffee-Price-Tracker
+Environment=HOME=/home/mg
+Environment=PATH=/home/mg/git/Allegro-Smart-Coffee-Price-Tracker/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/mg/git/Allegro-Smart-Coffee-Price-Tracker/.venv/bin/podman-compose up -d
+ExecStop=/home/mg/git/Allegro-Smart-Coffee-Price-Tracker/.venv/bin/podman-compose down
+TimeoutStartSec=0
+TimeoutStopSec=90
+
+[Install]
+WantedBy=default.target

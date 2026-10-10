@@ -1,0 +1,14 @@
+groups:
+  - name: coffee-price-alerts
+    interval: 30s
+    rules:
+      - alert: CoffeePriceDrop
+        expr: |
+          allegro_coffee_price_pln{product="jacobs_kronung_1kg"}
+            < avg_over_time(allegro_coffee_price_pln{product="jacobs_kronung_1kg"}[30d]) * 0.85
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: "Coffee offer is at least 15% below its 30-day average"
+          description: "{{ $labels.product }} is currently {{ $value }} PLN. Seller: {{ $labels.seller }}."
